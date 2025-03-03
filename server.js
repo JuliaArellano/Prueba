@@ -1,47 +1,33 @@
 require('dotenv').config();
-const express = require('express');
 const axios = require('axios');
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+// Obtener el Client ID y Client Secret del archivo .env
+const clientId = process.env.FORGE_CLIENT_ID;
+const clientSecret = process.env.FORGE_CLIENT_SECRET;
 
-// Ruta para obtener los hubs de Autodesk Forge
-app.get('/hubs', async (req, res) => {
-    try {
-        const token = process.env.FORGE_ACCESS_TOKEN; // Carga el token de las variables de entorno
-        const response = await axios.get("https://developer.api.autodesk.com/project/v1/hubs", {
-            headers: { Authorization: `Bearer ${token}` }
-        });
-        res.json(response.data);
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
+// Función para obtener el access token
+const getAccessToken = async () => {
+  try {
+    const response = await axios.post(
+      'https://developer.api.autodesk.com/authentication/v1/authenticate',
+      new URLSearchParams({
+        client_id: clientId,
+        client_secret: clientSecret,
+        grant_type: 'client_credentials',
+        scope: 'data:read data:write'
+      }),
+      { headers: { 'Content-Type': 'application/x-www-form-urlencoded' } }
+    );
 
-// Ruta para crear un bucket en Forge
-app.post('/create-bucket', async (req, res) => {
-    try {
-        const token = process.env.FORGE_ACCESS_TOKEN;
-        const bucketKey = "mi-bucket"; // El nombre del bucket
-        const policyKey = "transient"; // Política del bucket
+    // Extraer el access token de la respuesta
+    const accessToken = response.data.access_token;
+    console.log('Token de acceso obtenido:', accessToken);
 
-        const response = await axios.post("https://developer.api.autodesk.com/oss/v2/buckets", {
-            bucketKey: bucketKey,
-            policyKey: policyKey
-        }, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-                "Content-Type": "application/json"
-            }
-        });
+    return accessToken;
+  } catch (error) {
+    console.error('Error al obtener el token:', error);
+  }
+};
 
-        res.json(response.data); // Devuelve la respuesta de la creación del bucket
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Iniciar el servidor
-app.listen(PORT, () => {
-    console.log(`Servidor corriendo en http://localhost:${PORT}`);
-});
+// Llamar a la función para obtener el token
+getAccessToken();
