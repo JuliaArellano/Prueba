@@ -1,24 +1,8 @@
 import os
 import streamlit as st
-import subprocess
-import sys
-
-# Función para instalar dependencias
-def install(package):
-    subprocess.check_call([sys.executable, "-m", "pip", "install", package])
-
-# Verificar e instalar PyVista y Panel si no están instalados
-try:
-    import pyvista as pv
-    import panel as pn
-except ImportError:
-    st.write("Instalando dependencias...")
-    install("pyvista")
-    install("panel")
-    import pyvista as pv
-    import panel as pn
-
 import tempfile
+import pyvista as pv
+import panel as pn
 
 # Configurar PyVista para evitar problemas con Jupyter
 pv.global_theme.jupyter_backend = None
@@ -49,4 +33,3 @@ if uploaded_file is not None:
 
     # Eliminar el archivo temporal
     os.remove(file_path)
-
