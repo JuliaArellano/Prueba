@@ -1,8 +1,16 @@
-import streamlit as st
-import pyvista as pv
-import tempfile
 import os
-import panel as pn
+import streamlit as st
+
+# Instalar dependencias si no están presentes
+try:
+    import pyvista as pv
+    import panel as pn
+except ImportError:
+    os.system("pip install pyvista panel")
+    import pyvista as pv
+    import panel as pn
+
+import tempfile
 
 # Configurar PyVista para evitar problemas con Jupyter
 pv.global_theme.jupyter_backend = None
@@ -33,4 +41,5 @@ if uploaded_file is not None:
 
     # Eliminar el archivo temporal
     os.remove(file_path)
+
 
