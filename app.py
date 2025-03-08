@@ -1,66 +1,36 @@
 import streamlit as st
-import comtypes.client
+import pyvista as pv
+import tempfile
 import os
+import panel as pn
 
-# Ruta local del archivo .ipt
-ruta_archivo = "Stent_v2.ipt"  # Cambia esto si es necesario
+# Configurar PyVista para evitar problemas con Jupyter
+pv.global_theme.jupyter_backend = None
+pn.extension("vtk")
 
-st.title("Visor automático de archivos .ipt de Autodesk Inventor")
+# Título de la app
+st.title("Visor de Modelos STL")
 
-# Verificar si el archivo existe en el servidor
-if os.path.exists(ruta_archivo):
-    st.success("¡Archivo .ipt encontrado y cargado automáticamente!")
+# Subir archivo STL
+uploaded_file = st.file_uploader("Sube un archivo STL", type=["stl"])
 
-    try:
-        # Iniciar Autodesk Inventor
-        inventor = comtypes.client.CreateObject("Inventor.Application")
-        inventor.Visible = True
+if uploaded_file is not None:
+    # Guardar archivo temporalmente
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".stl") as tmpfile:
+        tmpfile.write(uploaded_file.read())
+        file_path = tmpfile.name
 
-        # Abrir el archivo .ipt
-        documento = inventor.Documents.Open(os.path.abspath(ruta_archivo))
-        st.write("Nombre del archivo:", documento.DisplayName)
+    # Leer el STL con PyVista
+    malha = pv.read(file_path)
 
-        # Mostrar el tipo de documento y algunas propiedades iniciales
-        st.write(f"Tipo de documento: {documento.DocumentType}")
-        st.write(f"¿El documento está guardado?: {'Sí' if documento.Saved else 'No'}")
+    # Crear visualización interactiva
+    plotter = pv.Plotter()
+    plotter.add_mesh(malha, color="lightblue", show_edges=True)
 
-        # Obtener la definición del componente (pieza)
-        pieza = documento.ComponentDefinition
-        st.write(f"Componente: {pieza.Name}")
+    # Integrar con Panel para mostrarlo en Streamlit
+    pane = pn.pane.VTK(plotter.ren_win, sizing_mode="stretch_both")
+    st.write(pane)
 
-        # 🔄 Mostrar información de los bocetos
-        bocetos = pieza.Sketches
-        st.write(f"Cantidad de bocetos: {bocetos.Count}")
-        for i in range(1, bocetos.Count + 1):
-            boceto = bocetos.Item(i)
-            st.write(f"Boceto {i}: {boceto.Name}")
+    # Eliminar el archivo temporal
+    os.remove(file_path)
 
-        # 🔄 Mostrar información de las bobinas
-        bobinas = pieza.Features.RevolveFeatures
-        st.write(f"Cantidad de bobinas: {bobinas.Count}")
-        for i in range(1, bobinas.Count + 1):
-            bobina = bobinas.Item(i)
-            st.write(f"Bobina {i}: {bobina.Name}, Volumen: {bobina.MassProperties.Volume:.2f} cm³")
-
-        # Ejemplo: mostrar el volumen total de la pieza
-        volumen_total = pieza.MassProperties.Volume
-        masa_total = pieza.MassProperties.Mass
-
-        # Mostrar propiedades generales de la pieza
-        st.write(f"Volumen total de la pieza: {volumen_total:.2f} cm³")
-        st.write(f"Masa total de la pieza: {masa_total:.2f} g")
-
-        # Botón para procesar
-        if st.button("Procesar archivo"):
-            # Aquí agregarías el código para hacer más análisis o procesamientos específicos
-            st.write("¡Procesando archivo y realizando cálculos adicionales...!")
-            # Aquí podrías continuar con el procesamiento de la pieza o mostrar más detalles
-
-        # Cerrar el documento después de mostrar la información
-        documento.Close()
-
-    except Exception as e:
-        st.error(f"Error al procesar el archivo con Inventor: {e}")
-
-else:
-    st.error("No se encontró el archivo .ipt en el servidor.")
